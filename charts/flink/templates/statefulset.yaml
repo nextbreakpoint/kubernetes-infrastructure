@@ -30,6 +30,10 @@ spec:
         - name: {{ $root.Chart.Name }}
           image: "{{ $root.Values.image.registry }}{{ $root.Values.image.repository }}:{{ $root.Values.image.tag }}"
           imagePullPolicy: {{ $root.Values.image.pullPolicy }}
+          {{- if $root.Values.image.pullSecrets }}
+          imagePullSecrets:
+            - name: {{ toYaml $root.Values.image.pullSecrets | indent 8 | trim }}
+          {{- end}}
           args:
             - jobmanager
           ports:
@@ -46,7 +50,7 @@ spec:
               containerPort: 6125
               protocol: TCP
           volumeMounts:
-            - mountPath: /var/tmp/data
+            - mountPath: /var/data
               subPath: flink/jobmanager
               name: flink
           env:
@@ -58,15 +62,11 @@ spec:
               valueFrom:
                 fieldRef:
                   fieldPath: metadata.namespace
-            - name: FLINK_ENVIRONMENT
-              value: {{ $root.Release.Name }}
             - name: JOB_MANAGER_RPC_ADDRESS
               value: {{ $fullname }}-jobmanager-headless
 {{ toYaml $root.Values.jobmanager.environment | indent 12 }}
           resources:
 {{ toYaml $root.Values.jobmanager.resources | indent 12 }}
-      imagePullSecrets:
-        - name: regcred
       affinity:
         podAntiAffinity:
           requiredDuringSchedulingIgnoredDuringExecution:
@@ -81,6 +81,20 @@ spec:
                 values:
                 - jobmanager
             topologyKey: "kubernetes.io/hostname"
+{{- if $root.Values.jobmanager.nodeAffinity }}
+{{ toYaml $root.Values.jobmanager.nodeAffinity | indent 12 }}
+{{- else}}
+{{- if $root.Values.jobmanager.zone }}
+        nodeAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            nodeSelectorTerms:
+            - matchExpressions:
+              - key: topology.kubernetes.io/zone
+                operator: In
+                values:
+                  - {{ $root.Values.jobmanager.zone }}
+{{- end}}
+{{- if $root.Values.jobmanager.hostname }}
         nodeAffinity:
           requiredDuringSchedulingIgnoredDuringExecution:
             nodeSelectorTerms:
@@ -88,7 +102,9 @@ spec:
               - key: kubernetes.io/hostname
                 operator: In
                 values:
-                  - k8s1
+                  - {{ $root.Values.jobmanager.hostname }}
+{{- end}}
+{{- end}}
   volumeClaimTemplates:
     - metadata:
         name: flink
@@ -100,8 +116,8 @@ spec:
         accessModes: [ "ReadWriteOnce" ]
         resources:
           requests:
-            storage: 2Gi
-        storageClassName: "hostpath"
+            storage: {{ $root.Values.jobmanager.storage.size | default "2Gi" }}
+        storageClassName: {{ $root.Values.jobmanager.storage.class | default "hostpath" }}
 ---
 apiVersion: apps/v1
 kind: StatefulSet
@@ -113,7 +129,7 @@ metadata:
     release: {{ $root.Release.Name }}
     heritage: {{ $root.Release.Service }}
 spec:
-  replicas: 2
+  replicas: {{ $root.Values.taskmanager.replicas | default 1 }}
   serviceName: default
   selector:
     matchLabels:
@@ -131,6 +147,10 @@ spec:
         - name: {{ $root.Chart.Name }}
           image: "{{ $root.Values.image.registry }}{{ $root.Values.image.repository }}:{{ $root.Values.image.tag }}"
           imagePullPolicy: {{ $root.Values.image.pullPolicy }}
+          {{- if $root.Values.image.pullSecrets }}
+          imagePullSecrets:
+            - name: {{ toYaml $root.Values.image.pullSecrets | indent 8 | trim }}
+          {{- end}}
           args:
             - taskmanager
           ports:
@@ -141,7 +161,7 @@ spec:
               containerPort: 6122
               protocol: TCP
           volumeMounts:
-            - mountPath: /var/tmp/data
+            - mountPath: /var/data
               subPath: flink/taskmanager
               name: flink
           env:
@@ -153,17 +173,13 @@ spec:
               valueFrom:
                 fieldRef:
                   fieldPath: metadata.namespace
-            - name: FLINK_ENVIRONMENT
-              value: {{ $root.Release.Name }}
             - name: TASK_MANAGER_NUMBER_OF_TASK_SLOTS
-              value: "1"
+              value: {{ $root.Values.taskmanager.taskslots | default "1" }}
             - name: JOB_MANAGER_RPC_ADDRESS
               value: {{ $fullname }}-jobmanager-headless
 {{ toYaml $root.Values.taskmanager.environment | indent 12 }}
           resources:
 {{ toYaml $root.Values.taskmanager.resources | indent 12 }}
-      imagePullSecrets:
-        - name: regcred
       affinity:
         podAntiAffinity:
           requiredDuringSchedulingIgnoredDuringExecution:
@@ -189,5 +205,5 @@ spec:
         accessModes: [ "ReadWriteOnce" ]
         resources:
           requests:
-            storage: 5Gi
-        storageClassName: "hostpath"
+            storage: {{ $root.Values.taskmanager.storage.size | default "5Gi" }}
+        storageClassName: {{ $root.Values.taskmanager.storage.class | default "hostpath" }}

@@ -2,7 +2,9 @@ ARG cp_kafka_version
 
 FROM confluentinc/cp-kafka:${cp_kafka_version}
 
-RUN apt update -y && apt install -y wget
+USER root
+
+RUN yum update -y && yum install -y wget
 
 RUN mkdir -p /opt/jmx-exporter && \
     mkdir -p /etc/jmx-exporter && \
@@ -12,6 +14,8 @@ COPY jmx-exporter.yml /etc/jmx-exporter/kafka.yml
 
 COPY docker-entrypoint.sh /docker-entrypoint.sh
 RUN chmod a+x /docker-entrypoint.sh
+
+USER appuser 
 
 ENTRYPOINT ["/docker-entrypoint.sh"]
 CMD ["/etc/confluent/docker/run"]

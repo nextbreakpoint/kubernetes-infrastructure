@@ -6,17 +6,17 @@
 kind: PersistentVolumeClaim
 apiVersion: v1
 metadata:
-  name: {{ $fullname }}-k8s{{ . }}
+  name: {{ $fullname }}-{{ . }}
 spec:
-  storageClassName: hostpath
+  storageClassName: {{ $root.Values.storage.class | default "hostpath" }}
   accessModes:
     - ReadWriteOnce
   resources:
     requests:
-      storage: 5Gi
+      storage: {{ $root.Values.storage.size | default "5Gi" }}
   selector:
       matchLabels:
         app: {{ $name }}
         release: {{ $root.Release.Name }}
-        node: k8s{{ . }}
-    {{ end }}
+        server: {{ $fullname }}-{{ . }}
+{{ end }}

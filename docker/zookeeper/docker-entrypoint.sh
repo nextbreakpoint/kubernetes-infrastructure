@@ -3,16 +3,18 @@
 set -e
 
 # Allow the container to be started with `--user`
-if [[ "$1" = 'zkServer.sh' && "$(id -u)" = '0' ]]; then
+if [ "$1" = 'zkServer.sh' ]; then
+  if [ "$(id -u)" = '0' ]; then
     chown -R zookeeper "$ZOO_DATA_DIR" "$ZOO_DATA_LOG_DIR" "$ZOO_LOG_DIR" "$ZOO_CONF_DIR"
     exec gosu zookeeper "$0" "$@"
+  fi
 fi
 
 # Generate the config only if it doesn't exist
-if [[ ! -f "$ZOO_CONF_DIR/zoo.cfg" ]]; then
+if [ ! -f "$ZOO_CONF_DIR/zoo.cfg" ]; then
     CONFIG="$ZOO_CONF_DIR/zoo.cfg"
 
-    echo "clientPort=$ZOO_PORT" >> "$CONFIG"
+    echo "clientPort=2181" >> "$CONFIG"
     echo "dataDir=$ZOO_DATA_DIR" >> "$CONFIG"
     echo "dataLogDir=$ZOO_DATA_LOG_DIR" >> "$CONFIG"
 
@@ -26,7 +28,7 @@ if [[ ! -f "$ZOO_CONF_DIR/zoo.cfg" ]]; then
     echo "standaloneEnabled=$ZOO_STANDALONE_ENABLED" >> "$CONFIG"
     echo "admin.enableServer=$ZOO_ADMINSERVER_ENABLED" >> "$CONFIG"
 
-    if [[ -z $ZOO_SERVERS ]]; then
+    if [ -z $ZOO_SERVERS ]; then
       ZOO_SERVERS="server.1=localhost:2888:3888;2181"
     fi
 
@@ -34,18 +36,17 @@ if [[ ! -f "$ZOO_CONF_DIR/zoo.cfg" ]]; then
         echo "$server" >> "$CONFIG"
     done
 
-    if [[ -n $ZOO_4LW_COMMANDS_WHITELIST ]]; then
+    if [ -n $ZOO_4LW_COMMANDS_WHITELIST ]; then
         echo "4lw.commands.whitelist=$ZOO_4LW_COMMANDS_WHITELIST" >> "$CONFIG"
     fi
-
 fi
 
 # Write myid only if it doesn't exist
-if [[ ! -f "$ZOO_DATA_DIR/myid" ]]; then
+if [ ! -f "$ZOO_DATA_DIR/myid" ]; then
     echo "${ZOO_MY_ID:-1}" > "$ZOO_DATA_DIR/myid"
 fi
 
-export SERVER_JVMFLAGS="-javaagent:/opt/jmx-exporter/jmx-exporter.jar=7070:/etc/jmx-exporter/zookeeper.yml"
+export SERVER_JVMFLAGS="-javaagent:/opt/jmx-exporter/jmx-exporter.jar=9090:/etc/jmx-exporter/zookeeper.yml"
 
 if [ -z "$JAAS_CONFIG_LOCATION" ]; then
   if [ -n "$JAAS_CONFIG_CONTENT" ]; then

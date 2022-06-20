@@ -3,16 +3,17 @@
 # Declare variables to be passed into your templates.
 
 image:
-  registry: 
+  registry:
   repository: nextbreakpoint/zookeeper
-  tag: 3.4.14
+  tag: 3.8.0
   pullPolicy: Always
+  pullSecrets:
 
 service:
   firstExternalClientPort: 32100
   firstExternalLeaderPort: 32130
   firstExternalPeerPort: 32120
-  firstExternalMetricsPort: 32170
+  firstExternalMetricsPort: 32190
 
 resources:
   limits:
@@ -26,9 +27,12 @@ environment:
   jvmFlags: "-Xms256M -Xmx256M"
 
 secrets:
-  password: "test"
+  password:
 
 nodes:
   - "1"
   - "2"
   - "3"
+
+storage:
+  create: false

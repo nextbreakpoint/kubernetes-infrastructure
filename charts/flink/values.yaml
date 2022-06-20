@@ -3,10 +3,11 @@
 # Declare variables to be passed into your templates.
 
 image:
-  registry: 
+  registry:
   repository: nextbreakpoint/flink
-  tag: 1.9.0
+  tag: 1.15.0
   pullPolicy: Always
+  pullSecrets:
 
 jobmanager:
   resources:
@@ -21,6 +22,8 @@ jobmanager:
       value: "256"
 
 taskmanager:
+  replicas: 2
+  taskslots: 1
   resources:
     limits:
      cpu: 100m
@@ -33,7 +36,7 @@ taskmanager:
       value: "1024"
 
 storage:
-  create: true
+  create: false
 
 nodes:
   - "1"
