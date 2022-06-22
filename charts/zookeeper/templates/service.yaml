@@ -1,0 +1,108 @@
+{{- $fullname := include "zookeeper.fullname" . -}}
+{{- $name := include "zookeeper.name" . -}}
+{{- $chart := include "zookeeper.chart" . -}}
+{{- $root := . }}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ $fullname }}-headless
+  labels:
+    app: {{ $name }}
+    chart: {{ $chart }}
+    release: {{ $root.Release.Name }}
+    heritage: {{ $root.Release.Service }}
+spec:
+  clusterIP: None
+  ports:
+    - port: 2181
+      protocol: TCP
+      name: client
+    - port: 3888
+      protocol: TCP
+      name: leader
+    - port: 2888
+      protocol: TCP
+      name: peer
+    - port: 9090
+      protocol: TCP
+      name: metrics
+  selector:
+    app: {{ $name }}
+    release: {{ $root.Release.Name }}
+{{ range .Values.nodes }}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ $fullname }}-{{ .id }}
+  labels:
+    app: {{ $name }}
+    chart: {{ $chart }}
+    release: {{ $root.Release.Name }}
+    heritage: {{ $root.Release.Service }}
+    external: "false"
+    server: {{ $fullname }}-{{ .id }}
+spec:
+  type: ClusterIP
+  ports:
+    - port: 2181
+      targetPort: client
+      protocol: TCP
+      name: client
+    - port: 3888
+      targetPort: leader
+      protocol: TCP
+      name: leader
+    - port: 2888
+      targetPort: peer
+      protocol: TCP
+      name: peer
+    - port: 9090
+      targetPort: metrics
+      protocol: TCP
+      name: metrics
+  selector:
+    app: {{ $name }}
+    release: {{ $root.Release.Name }}
+    server: {{ $fullname }}-{{ .id }}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ $fullname }}-{{ .id }}-external
+  labels:
+    app: {{ $name }}
+    chart: {{ $chart }}
+    release: {{ $root.Release.Name }}
+    heritage: {{ $root.Release.Service }}
+    external: "true"
+    server: {{ $fullname }}-{{ .id }}
+spec:
+  type: NodePort
+  ports:
+    - port: 2181
+      nodePort: {{ add $root.Values.service.firstExternalClientPort .id }}
+      targetPort: client
+      protocol: TCP
+      name: client
+    - port: 3888
+      nodePort: {{ add $root.Values.service.firstExternalLeaderPort .id }}
+      targetPort: leader
+      protocol: TCP
+      name: leader
+    - port: 2888
+      nodePort: {{ add $root.Values.service.firstExternalPeerPort .id }}
+      targetPort: peer
+      protocol: TCP
+      name: peer
+    - port: 9090
+      nodePort: {{ add $root.Values.service.firstExternalMetricsPort .id }}
+      targetPort: metrics
+      protocol: TCP
+      name: metrics
+  selector:
+    app: {{ $name }}
+    release: {{ $root.Release.Name }}
+    server: {{ $fullname }}-{{ .id }}
+{{ end }}

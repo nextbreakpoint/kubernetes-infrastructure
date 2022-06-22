@@ -1,0 +1,45 @@
+# Default values for kafka.
+# This is a YAML-formatted file.
+# Declare variables to be passed into your templates.
+
+image:
+  registry:
+  repository: nextbreakpoint/cp-kafka
+  tag: 6.0.7
+  pullPolicy: Always
+  pullSecrets:
+
+service:
+  firstExternalBrokerPort: 32000
+  firstExternalMetricsPort: 32090
+
+resources:
+  limits:
+   cpu: 100m
+   memory: 1100Mi
+  requests:
+   cpu: 100m
+   memory: 1100Mi
+
+environment:
+  jvmFlags: "-Xms1024M -Xmx1024M"
+
+secrets:
+  password:
+
+zookeeper:
+  connect: "zookeeper-1:2181,zookeeper-2:2181,zookeeper-3:2181"
+
+storage:
+  create: false
+
+nodes:
+  - id: "1"
+    zone: "a"
+    externalName:
+  - id: "2"
+    zone: "b"
+    externalName:
+  - id: "3"
+    zone: "c"
+    externalName: 

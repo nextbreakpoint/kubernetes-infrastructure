@@ -1,0 +1,225 @@
+{{- $fullname := include "flink.fullname" . -}}
+{{- $name := include "flink.name" . -}}
+{{- $chart := include "flink.chart" . -}}
+{{- $root := . }}
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: {{ $fullname }}-jobmanager
+  labels:
+    app: {{ $name }}
+    chart: {{ $chart }}
+    release: {{ $root.Release.Name }}
+    heritage: {{ $root.Release.Service }}
+spec:
+  replicas: 1
+  updateStrategy:
+    type: OnDelete
+  serviceName: default
+  selector:
+    matchLabels:
+      app: {{ $name }}
+      role: "jobmanager"
+      release: {{ $root.Release.Name }}
+  template:
+    metadata:
+      labels:
+        app: {{ $name }}
+        role: "jobmanager"
+        release: {{ $root.Release.Name }}
+    spec:
+      {{- if $root.Values.image.pullSecrets }}
+      imagePullSecrets:
+        - name: {{ $root.Values.image.pullSecrets }}
+      {{- end}}
+      containers:
+        - name: {{ $root.Chart.Name }}
+          image: "{{ $root.Values.image.registry }}{{ $root.Values.image.repository }}:{{ $root.Values.image.tag }}"
+          imagePullPolicy: {{ $root.Values.image.pullPolicy }}
+          args:
+            - jobmanager
+          ports:
+            - name: ui
+              containerPort: 8081
+              protocol: TCP
+            - name: rpc
+              containerPort: 6123
+              protocol: TCP
+            - name: blob
+              containerPort: 6124
+              protocol: TCP
+            - name: query
+              containerPort: 6125
+              protocol: TCP
+          volumeMounts:
+            - mountPath: /var/data
+              subPath: flink/jobmanager
+              name: flink
+          env:
+            - name: POD_NAME
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.name
+            - name: POD_NAMESPACE
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.namespace
+            - name: JOB_MANAGER_RPC_ADDRESS
+              value: {{ $fullname }}-jobmanager
+{{ toYaml $root.Values.jobmanager.environment | indent 12 }}
+          resources:
+{{ toYaml $root.Values.jobmanager.resources | indent 12 }}
+      affinity:
+        podAntiAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+          - weight: 1
+            podAffinityTerm:
+              labelSelector:
+                matchExpressions:
+                - key: app
+                  operator: In
+                  values:
+                  - {{ $name }}
+                - key: role
+                  operator: In
+                  values:
+                  - jobmanager
+              topologyKey: "kubernetes.io/hostname"
+        nodeAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            nodeSelectorTerms:
+            {{- if $root.Values.jobmanager.zone }}
+            - matchExpressions:
+              - key: topology.kubernetes.io/zone
+                operator: In
+                values:
+                  - {{ $root.Values.jobmanager.zone }}
+            {{- end}}
+            {{- if $root.Values.jobmanager.hostname }}
+            - matchExpressions:
+              - key: kubernetes.io/hostname
+                operator: In
+                values:
+                  - {{ $root.Values.jobmanager.hostname }}
+            {{- end}}
+  volumeClaimTemplates:
+    - metadata:
+        name: flink
+        labels:
+          app: {{ $name }}
+          role: jobmanager
+          release: {{ $root.Release.Name }}
+      spec:
+        accessModes:
+          - {{ $root.Values.jobmanager.storage.accessModes | default "ReadWriteOnce" }}
+        resources:
+          requests:
+            storage: {{ $root.Values.jobmanager.storage.size | default "2Gi" }}
+        storageClassName: {{ $root.Values.jobmanager.storage.class | default "hostpath" }}
+---
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: {{ $fullname }}-taskmanager
+  labels:
+    app: {{ $name }}
+    chart: {{ $chart }}
+    release: {{ $root.Release.Name }}
+    heritage: {{ $root.Release.Service }}
+spec:
+  replicas: {{ $root.Values.taskmanager.replicas | default 1 }}
+  updateStrategy:
+    type: RollingUpdate
+  serviceName: default
+  selector:
+    matchLabels:
+      app: {{ $name }}
+      role: "taskmanager"
+      release: {{ $root.Release.Name }}
+  template:
+    metadata:
+      labels:
+        app: {{ $name }}
+        role: "taskmanager"
+        release: {{ $root.Release.Name }}
+    spec:
+      {{- if $root.Values.image.pullSecrets }}
+      imagePullSecrets:
+        - name: {{ $root.Values.image.pullSecrets }}
+      {{- end}}
+      containers:
+        - name: {{ $root.Chart.Name }}
+          image: "{{ $root.Values.image.registry }}{{ $root.Values.image.repository }}:{{ $root.Values.image.tag }}"
+          imagePullPolicy: {{ $root.Values.image.pullPolicy }}
+          args:
+            - taskmanager
+          ports:
+            - name: data
+              containerPort: 6121
+              protocol: TCP
+            - name: ipc
+              containerPort: 6122
+              protocol: TCP
+          volumeMounts:
+            - mountPath: /var/data
+              subPath: flink/taskmanager
+              name: flink
+          env:
+            - name: POD_NAME
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.name
+            - name: POD_NAMESPACE
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.namespace
+            - name: TASK_MANAGER_NUMBER_OF_TASK_SLOTS
+              value: {{ $root.Values.taskmanager.taskslots | default "1" | quote }}
+            - name: JOB_MANAGER_RPC_ADDRESS
+              value: {{ $fullname }}-jobmanager
+{{ toYaml $root.Values.taskmanager.environment | indent 12 }}
+          resources:
+{{ toYaml $root.Values.taskmanager.resources | indent 12 }}
+      affinity:
+        podAntiAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+          - weight: 5
+            podAffinityTerm:
+              labelSelector:
+                matchExpressions:
+                - key: app
+                  operator: In
+                  values:
+                  - {{ $name }}
+                - key: role
+                  operator: In
+                  values:
+                  - taskmanager
+              topologyKey: "kubernetes.io/hostname"
+          - weight: 1
+            podAffinityTerm:
+              labelSelector:
+                matchExpressions:
+                - key: app
+                  operator: In
+                  values:
+                  - {{ $name }}
+                - key: role
+                  operator: In
+                  values:
+                  - jobmanager
+              topologyKey: "kubernetes.io/hostname"
+  volumeClaimTemplates:
+    - metadata:
+        name: flink
+        labels:
+          app: {{ $name }}
+          role: taskmanager
+          release: {{ $root.Release.Name }}
+      spec:
+        accessModes:
+          - {{ $root.Values.taskmanager.storage.accessModes | default "ReadWriteOnce" }}
+        resources:
+          requests:
+            storage: {{ $root.Values.taskmanager.storage.size | default "5Gi" }}
+        storageClassName: {{ $root.Values.taskmanager.storage.class | default "hostpath" }}

@@ -1,0 +1,22 @@
+{{- $fullname := include "zookeeper.fullname" . -}}
+{{- $name := include "zookeeper.name" . -}}
+{{- $root := . }}
+{{ range .Values.nodes }}
+---
+kind: PersistentVolumeClaim
+apiVersion: v1
+metadata:
+  name: {{ $fullname }}-{{ .id }}
+spec:
+  storageClassName: {{ $root.Values.storage.class | default "hostpath" }}
+  accessModes:
+    - {{ $root.Values.storage.accessModes | default "ReadWriteOnce" }}
+  resources:
+    requests:
+      storage: {{ $root.Values.storage.size | default "2Gi" }}
+  selector:
+      matchLabels:
+        app: {{ $name }}
+        release: {{ $root.Release.Name }}
+        server: {{ $fullname }}-{{ .id }}
+{{ end }}
