@@ -1,38 +1,20 @@
-# Default values for zookeeper.
-# This is a YAML-formatted file.
-# Declare variables to be passed into your templates.
+global:
+  storageClass: hostpath-csi
 
-image:
-  registry:
-  repository: nextbreakpoint/zookeeper
-  tag: 3.8.0
-  pullPolicy: Always
-  pullSecrets:
-
-service:
-  firstExternalClientPort: 32100
-  firstExternalLeaderPort: 32130
-  firstExternalPeerPort: 32120
-  firstExternalMetricsPort: 32190
-
-resources:
-  limits:
-   cpu: 100m
-   memory: 300Mi
-  requests:
-   cpu: 100m
-   memory: 300Mi
-
-environment:
-  jvmFlags: "-Xms256M -Xmx256M"
-
-secrets:
-  password:
-
-nodes:
-  - "1"
-  - "2"
-  - "3"
-
-storage:
-  create: false
+zookeeper:
+  image:
+    pullPolicy: IfNotPresent
+  replicaCount: 3
+  heapSize: 512
+  resources:
+    limits:
+     cpu: 500m
+     memory: 700Mi
+    requests:
+     cpu: 100m
+     memory: 700Mi
+  # updateStrategy:
+  #   type: OnDelete
+  podAntiAffinityPreset: hard
+  metrics:
+    enabled: true

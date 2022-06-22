@@ -1,0 +1,18 @@
+vault:
+  server:
+    ha:
+      enabled: true
+      replicas: 3
+    dataStorage:
+      storageClass: hostpath-csi
+    resources:
+      limits:
+       cpu: 500m
+       memory: 500Mi
+      requests:
+       cpu: 100m
+       memory: 500Mi
+  ui:
+    enabled: true
+  csi:
+    enabled: true

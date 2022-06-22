@@ -1,0 +1,9 @@
+apiVersion: v1
+appVersion: 8.2.3
+description: A Helm chart for installing Elasticsearch
+name: elasticsearch
+version: 1.0.0
+dependencies:
+  - name: elasticsearch
+    repository: https://charts.bitnami.com/bitnami
+    version: 18.x.x

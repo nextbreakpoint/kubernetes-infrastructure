@@ -5,69 +5,123 @@ This repository contains the Helm charts for installing Kafka, Zookeeper, and Fl
 The charts depend on custom Docker images which must be created before installing the charts.
 
 
-## Create Docker images
+## Install infrastructure
 
-Create the image for Zookeeper:
+Add charts repositories:
 
-    docker build -t nextbreakpoint/zookeeper:3.8.0 --build-arg zookeeper_version=3.8.0 docker/zookeeper
+    helm repo add jetstack https://charts.jetstack.io
+    helm repo add bitnami https://charts.bitnami.com/bitnami
+    helm repo add hashicorp https://helm.releases.hashicorp.com
+    helm repo add prometheus-community https://prometheus-community.github.io/helm-charts
+    helm repo add jaegertracing https://jaegertracing.github.io/helm-charts
+    helm repo add fluent https://fluent.github.io/helm-charts
+    helm repo update
 
-Create the image for Kafka:
+Install Cert Manager:
 
-    docker build -t nextbreakpoint/cp-kafka:6.0.7 --build-arg cp_kafka_version=6.0.7 docker/kafka
+    helm upgrade --install cert-manager jetstack/cert-manager --namespace cert-manager --create-namespace --version v1.8.2 --set installCRDs=true
 
-Create the image for Flink:
+Install Hostpath Provisioner Operator:
 
-    docker build -t nextbreakpoint/flink:1.15.0 --build-arg flink_version=1.15.0 --build-arg scala_version=2.12 docker/flink
+    kubectl create -f https://raw.githubusercontent.com/kubevirt/hostpath-provisioner-operator/main/deploy/namespace.yaml
+    kubectl create -f https://raw.githubusercontent.com/kubevirt/hostpath-provisioner-operator/main/deploy/operator.yaml -n hostpath-provisioner
+    kubectl create -f https://raw.githubusercontent.com/kubevirt/hostpath-provisioner-operator/main/deploy/webhook.yaml -n hostpath-provisioner
+    kubectl create -f https://raw.githubusercontent.com/kubevirt/hostpath-provisioner-operator/main/deploy/storageclass-wffc-csi.yaml
+    kubectl create -f https://raw.githubusercontent.com/kubevirt/hostpath-provisioner-operator/main/deploy/hostpathprovisioner_cr.yaml
 
+Install Elasticsearch:
 
-## Test images
+    helm dependency build charts/elasticsearch                      
+    kubectl create ns elasticsearch
+    helm upgrade --install elasticsearch charts/elasticsearch --render-subchart-notes --namespace elasticsearch
 
-Create a bridge network:
+Install Cassandra:
 
-    docker network create test
-
-Run Zookeeper as container:
-
-    docker run -it --rm --net test --name zookeeper -p 2181:2181 nextbreakpoint/zookeeper:3.8.0
-
-Run Kafka as container:
-
-    docker run -it --rm --net test --name kafka -p 9093:9093 -e KAFKA_ZOOKEEPER_CONNECT=zookeeper:2181 -e KAFKA_ADVERTISED_LISTENERS="plaintext://kafka:9092,external://localhost:9093" -e KAFKA_LISTENER_SECURITY_PROTOCOL_MAP="PLAINTEXT:PLAINTEXT,EXTERNAL:PLAINTEXT" nextbreakpoint/cp-kafka:6.0.7     
-
-Run Flink Jobmanager as container:
-
-    docker run -it --rm --net test --name flink-jobmanager -p 6123:6123 -p 8081:8081 -e JOB_MANAGER_RPC_ADDRESS=flink-jobmanager nextbreakpoint/flink:1.15.0 jobmanager
-
-Run Flink Taskmanager as container:
-
-    docker run -it --rm --net test --name flink-taskmanager -e JOB_MANAGER_RPC_ADDRESS=flink-jobmanager nextbreakpoint/flink:1.15.0 taskmanager
-
-
-## Install applications
+    helm dependency build charts/cassandra                      
+    kubectl create ns cassandra
+    helm upgrade --install cassandra-rack1 charts/cassandra --render-subchart-notes --namespace cassandra --set cassandra.cluster.rack=rack1
+    helm upgrade --install cassandra-rack2 charts/cassandra --render-subchart-notes --namespace cassandra --set cassandra.cluster.rack=rack2,cassandra.cluster.extraSeeds\[0\]=cassandra-rack1-headless.default.svc.cluster.local
+    helm upgrade --install cassandra-rack3 charts/cassandra --render-subchart-notes --namespace cassandra --set cassandra.cluster.rack=rack3,cassandra.cluster.extraSeeds\[0\]=cassandra-rack1-headless.default.svc.cluster.local
 
 Install Zookeeper:
 
-    helm install zookeeper charts/zookeeper
+    helm dependency build charts/zookeeper                      
+    kubectl create ns zookeeper
+    helm upgrade --install zookeeper charts/zookeeper --render-subchart-notes --namespace zookeeper
 
 Install Kafka:
 
-    helm install kafka charts/kafka
+    helm dependency build charts/kafka
+    kubectl create ns kafka
+    helm upgrade --install kafka charts/kafka --render-subchart-notes --namespace kafka
+
+Install Minio:
+
+    helm dependency build charts/minio                      
+    kubectl create ns minio
+    helm upgrade --install minio charts/minio --render-subchart-notes --namespace minio
+
+Install MySQL:
+
+    helm dependency build charts/mysql                      
+    kubectl create ns mysql
+    helm upgrade --install mysql charts/mysql --render-subchart-notes --namespace mysql
+
+Install PostgreSQL:
+
+    helm dependency build charts/postgresql                   
+    kubectl create ns postgresql
+    helm upgrade --install postgresql charts/postgresql --render-subchart-notes --namespace postgresql
+
+Install Consul:
+
+    helm dependency build charts/consul
+    kubectl create ns consul
+    helm upgrade --install consul charts/consul --render-subchart-notes --namespace consul
+
+Install Vault:
+
+    helm dependency build charts/vault
+    kubectl create ns vault
+    helm upgrade --install vault charts/vault --render-subchart-notes --namespace vault
+    kubectl -n vault exec -it vault-0 -- vault operator init  
+    kubectl -n vault exec -it vault-0 -- vault operator unseal
+    kubectl -n vault exec -it vault-0 -- vault operator unseal
+    kubectl -n vault exec -it vault-0 -- vault operator unseal
+
+Install Jaeger:
+
+    helm dependency build charts/jaeger-operator
+    kubectl create ns observability
+    helm upgrade --install jaeger-operator charts/jaeger-operator --render-subchart-notes --namespace observability
+
+Install FluentBit:
+
+    helm dependency build charts/fluent-bit
+    kubectl create ns fluent-bit
+    helm upgrade --install fluent-bit charts/fluent-bit --render-subchart-notes --namespace fluent-bit
+
+Install Prometheus:
+
+    helm dependency build charts/kube-prometheus-stack                      
+    kubectl create ns kube-prometheus-stack
+    helm upgrade --install kube-prometheus-stack charts/kube-prometheus-stack --render-subchart-notes --namespace kube-prometheus-stack
 
 Install Flink:
 
-    helm install flink charts/flink
+    kubectl create ns flink
+    helm upgrade --install flink charts/flink --render-subchart-notes --namespace flink
 
 
-## Uninstall applications
+## Documentation
 
-Uninstall Flink:
-
-    helm uninstall flink
-
-Uninstall Kafka:
-
-    helm uninstall kafka
-
-Uninstall Zookeeper:
-
-    helm uninstall zookeeper
+https://cert-manager.io/docs/installation/helm/#output-yaml    
+https://github.com/kubevirt/hostpath-provisioner
+https://github.com/kubevirt/hostpath-provisioner-operator
+https://github.com/bitnami/charts
+https://github.com/hashicorp/consul-k8s
+https://github.com/hashicorp/vault-k8s
+https://github.com/fluent/helm-charts
+https://github.com/prometheus-community/helm-charts
+https://github.com/jaegertracing/helm-charts
+https://github.com/jaegertracing/jaeger-operator

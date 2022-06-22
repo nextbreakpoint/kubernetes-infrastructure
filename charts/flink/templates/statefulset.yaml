@@ -13,6 +13,8 @@ metadata:
     heritage: {{ $root.Release.Service }}
 spec:
   replicas: 1
+  updateStrategy:
+    type: OnDelete
   serviceName: default
   selector:
     matchLabels:
@@ -26,14 +28,14 @@ spec:
         role: "jobmanager"
         release: {{ $root.Release.Name }}
     spec:
+      {{- if $root.Values.image.pullSecrets }}
+      imagePullSecrets:
+        - name: {{ $root.Values.image.pullSecrets }}
+      {{- end}}
       containers:
         - name: {{ $root.Chart.Name }}
-          image: "{{ $root.Values.image.registry }}{{ $root.Values.image.repository }}:{{ $root.Values.image.tag }}"
+          image: "{{ $root.Values.image.name }}:{{ $root.Values.image.tag }}"
           imagePullPolicy: {{ $root.Values.image.pullPolicy }}
-          {{- if $root.Values.image.pullSecrets }}
-          imagePullSecrets:
-            - name: {{ toYaml $root.Values.image.pullSecrets | indent 8 | trim }}
-          {{- end}}
           args:
             - jobmanager
           ports:
@@ -69,42 +71,20 @@ spec:
 {{ toYaml $root.Values.jobmanager.resources | indent 12 }}
       affinity:
         podAntiAffinity:
-          requiredDuringSchedulingIgnoredDuringExecution:
-          - labelSelector:
-              matchExpressions:
-              - key: app
-                operator: In
-                values:
-                - {{ $name }}
-              - key: role
-                operator: In
-                values:
-                - jobmanager
-            topologyKey: "kubernetes.io/hostname"
-{{- if $root.Values.jobmanager.nodeAffinity }}
-{{ toYaml $root.Values.jobmanager.nodeAffinity | indent 12 }}
-{{- else}}
-{{- if $root.Values.jobmanager.zone }}
-        nodeAffinity:
-          requiredDuringSchedulingIgnoredDuringExecution:
-            nodeSelectorTerms:
-            - matchExpressions:
-              - key: topology.kubernetes.io/zone
-                operator: In
-                values:
-                  - {{ $root.Values.jobmanager.zone }}
-{{- end}}
-{{- if $root.Values.jobmanager.hostname }}
-        nodeAffinity:
-          requiredDuringSchedulingIgnoredDuringExecution:
-            nodeSelectorTerms:
-            - matchExpressions:
-              - key: kubernetes.io/hostname
-                operator: In
-                values:
-                  - {{ $root.Values.jobmanager.hostname }}
-{{- end}}
-{{- end}}
+          preferredDuringSchedulingIgnoredDuringExecution:
+          - weight: 1
+            podAffinityTerm:
+              labelSelector:
+                matchExpressions:
+                - key: app
+                  operator: In
+                  values:
+                  - {{ $name }}
+                - key: role
+                  operator: In
+                  values:
+                  - jobmanager
+              topologyKey: "kubernetes.io/hostname"
   volumeClaimTemplates:
     - metadata:
         name: flink
@@ -113,11 +93,12 @@ spec:
           role: jobmanager
           release: {{ $root.Release.Name }}
       spec:
-        accessModes: [ "ReadWriteOnce" ]
+        accessModes:
+          - {{ $root.Values.jobmanager.storage.accessModes | default "ReadWriteOnce" }}
         resources:
           requests:
-            storage: {{ $root.Values.jobmanager.storage.size | default "2Gi" }}
-        storageClassName: {{ $root.Values.jobmanager.storage.class | default "hostpath" }}
+            storage: {{ $root.Values.jobmanager.storage.size | default "4Gi" }}
+        storageClassName: {{ $root.Values.jobmanager.storage.storageClass | default "hostpath" }}
 ---
 apiVersion: apps/v1
 kind: StatefulSet
@@ -130,6 +111,8 @@ metadata:
     heritage: {{ $root.Release.Service }}
 spec:
   replicas: {{ $root.Values.taskmanager.replicas | default 1 }}
+  updateStrategy:
+    type: RollingUpdate
   serviceName: default
   selector:
     matchLabels:
@@ -143,14 +126,14 @@ spec:
         role: "taskmanager"
         release: {{ $root.Release.Name }}
     spec:
+      {{- if $root.Values.image.pullSecrets }}
+      imagePullSecrets:
+        - name: {{ $root.Values.image.pullSecrets }}
+      {{- end}}
       containers:
         - name: {{ $root.Chart.Name }}
-          image: "{{ $root.Values.image.registry }}{{ $root.Values.image.repository }}:{{ $root.Values.image.tag }}"
+          image: "{{ $root.Values.image.name }}:{{ $root.Values.image.tag }}"
           imagePullPolicy: {{ $root.Values.image.pullPolicy }}
-          {{- if $root.Values.image.pullSecrets }}
-          imagePullSecrets:
-            - name: {{ toYaml $root.Values.image.pullSecrets | indent 8 | trim }}
-          {{- end}}
           args:
             - taskmanager
           ports:
@@ -174,7 +157,7 @@ spec:
                 fieldRef:
                   fieldPath: metadata.namespace
             - name: TASK_MANAGER_NUMBER_OF_TASK_SLOTS
-              value: {{ $root.Values.taskmanager.taskslots | default "1" }}
+              value: {{ $root.Values.taskmanager.taskslots | default "1" | quote }}
             - name: JOB_MANAGER_RPC_ADDRESS
               value: {{ $fullname }}-jobmanager-headless
 {{ toYaml $root.Values.taskmanager.environment | indent 12 }}
@@ -182,18 +165,33 @@ spec:
 {{ toYaml $root.Values.taskmanager.resources | indent 12 }}
       affinity:
         podAntiAffinity:
-          requiredDuringSchedulingIgnoredDuringExecution:
-          - labelSelector:
-              matchExpressions:
-              - key: app
-                operator: In
-                values:
-                - {{ $name }}
-              - key: role
-                operator: In
-                values:
-                - taskmanager
-            topologyKey: "kubernetes.io/hostname"
+          preferredDuringSchedulingIgnoredDuringExecution:
+          - weight: 5
+            podAffinityTerm:
+              labelSelector:
+                matchExpressions:
+                - key: app
+                  operator: In
+                  values:
+                  - {{ $name }}
+                - key: role
+                  operator: In
+                  values:
+                  - taskmanager
+              topologyKey: "kubernetes.io/hostname"
+          - weight: 1
+            podAffinityTerm:
+              labelSelector:
+                matchExpressions:
+                - key: app
+                  operator: In
+                  values:
+                  - {{ $name }}
+                - key: role
+                  operator: In
+                  values:
+                  - jobmanager
+              topologyKey: "kubernetes.io/hostname"
   volumeClaimTemplates:
     - metadata:
         name: flink
@@ -202,8 +200,9 @@ spec:
           role: taskmanager
           release: {{ $root.Release.Name }}
       spec:
-        accessModes: [ "ReadWriteOnce" ]
+        accessModes:
+          - {{ $root.Values.taskmanager.storage.accessModes | default "ReadWriteOnce" }}
         resources:
           requests:
-            storage: {{ $root.Values.taskmanager.storage.size | default "5Gi" }}
-        storageClassName: {{ $root.Values.taskmanager.storage.class | default "hostpath" }}
+            storage: {{ $root.Values.taskmanager.storage.size | default "8Gi" }}
+        storageClassName: {{ $root.Values.taskmanager.storage.storageClass | default "hostpath" }}

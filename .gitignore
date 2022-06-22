@@ -1,0 +1,8 @@
+charts/cassandra/charts
+charts/elasticsearch/charts
+charts/consul/charts
+charts/fluent-bit/charts
+charts/jaeger-operator/charts
+charts/kube-prometheus-stack/charts
+charts/vault/charts
+charts/postgresql/charts

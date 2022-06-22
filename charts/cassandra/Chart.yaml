@@ -1,0 +1,9 @@
+apiVersion: v1
+appVersion: 4.0.4
+description: A Helm chart for installing Cassandra
+name: cassandra
+version: 1.0.0
+dependencies:
+  - name: cassandra
+    repository: https://charts.bitnami.com/bitnami
+    version: 9.x.x

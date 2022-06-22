@@ -1,0 +1,9 @@
+apiVersion: v1
+appVersion: 0.57.0
+description: A Helm chart for installing Kube Prometheus Stack
+name: kube-prometheus-stack
+version: 1.0.0
+dependencies:
+  - name: kube-prometheus-stack
+    repository: https://prometheus-community.github.io/helm-charts
+    version: 36.x.x

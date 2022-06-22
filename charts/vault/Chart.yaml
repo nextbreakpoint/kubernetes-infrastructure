@@ -1,0 +1,9 @@
+apiVersion: v1
+appVersion: 1.10.3
+description: A Helm chart for installing Vault
+name: vault
+version: 1.0.0
+dependencies:
+  - name: vault
+    repository: https://helm.releases.hashicorp.com
+    version: 0.x.x

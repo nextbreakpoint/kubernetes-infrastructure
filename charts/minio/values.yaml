@@ -1,0 +1,22 @@
+global:
+  storageClass: hostpath-csi
+
+minio:
+  image:
+    pullPolicy: IfNotPresent
+  resources:
+    limits:
+     cpu: 500m
+     memory: 500Mi
+    requests:
+     cpu: 100m
+     memory: 500Mi
+  podAntiAffinityPreset: soft
+  mode: distributed
+  statefulset:
+    replicaCount: 2
+    drivesPerNode: 2
+    zones: 3
+  auth:
+    rootUser: test
+    rootPassword: password
