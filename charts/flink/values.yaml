@@ -32,6 +32,7 @@ jobmanager:
         metrics.reporter.prometheus.port: 9090
   storage:
     size: 2Gi
+  zone: b
 
 taskmanager:
   replicas: 2

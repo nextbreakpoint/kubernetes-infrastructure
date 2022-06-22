@@ -71,35 +71,37 @@ spec:
 {{ toYaml $root.Values.jobmanager.resources | indent 12 }}
       affinity:
         podAntiAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+          - weight: 1
+            podAffinityTerm:
+              labelSelector:
+                matchExpressions:
+                - key: app
+                  operator: In
+                  values:
+                  - {{ $name }}
+                - key: role
+                  operator: In
+                  values:
+                  - jobmanager
+              topologyKey: "kubernetes.io/hostname"
+        nodeAffinity:
           requiredDuringSchedulingIgnoredDuringExecution:
-          - labelSelector:
-              matchExpressions:
-              - key: app
+            nodeSelectorTerms:
+            {{- if $root.Values.jobmanager.zone }}
+            - matchExpressions:
+              - key: topology.kubernetes.io/zone
                 operator: In
                 values:
-                - {{ $name }}
-              - key: role
+                  - {{ $root.Values.jobmanager.zone }}
+            {{- end}}
+            {{- if $root.Values.jobmanager.hostname }}
+            - matchExpressions:
+              - key: kubernetes.io/hostname
                 operator: In
                 values:
-                - jobmanager
-            topologyKey: "kubernetes.io/hostname"
-        # nodeAffinity:
-        #   requiredDuringSchedulingIgnoredDuringExecution:
-        #     nodeSelectorTerms:
-        #     {{- if $root.Values.jobmanager.zone }}
-        #     - matchExpressions:
-        #       - key: topology.kubernetes.io/zone
-        #         operator: In
-        #         values:
-        #           - {{ $root.Values.jobmanager.zone }}
-        #     {{- end}}
-        #     {{- if $root.Values.jobmanager.hostname }}
-        #     - matchExpressions:
-        #       - key: kubernetes.io/hostname
-        #         operator: In
-        #         values:
-        #           - {{ $root.Values.jobmanager.hostname }}
-        #     {{- end}}
+                  - {{ $root.Values.jobmanager.hostname }}
+            {{- end}}
   volumeClaimTemplates:
     - metadata:
         name: flink
@@ -180,18 +182,33 @@ spec:
 {{ toYaml $root.Values.taskmanager.resources | indent 12 }}
       affinity:
         podAntiAffinity:
-          requiredDuringSchedulingIgnoredDuringExecution:
-          - labelSelector:
-              matchExpressions:
-              - key: app
-                operator: In
-                values:
-                - {{ $name }}
-              - key: role
-                operator: In
-                values:
-                - taskmanager
-            topologyKey: "kubernetes.io/hostname"
+          preferredDuringSchedulingIgnoredDuringExecution:
+          - weight: 5
+            podAffinityTerm:
+              labelSelector:
+                matchExpressions:
+                - key: app
+                  operator: In
+                  values:
+                  - {{ $name }}
+                - key: role
+                  operator: In
+                  values:
+                  - taskmanager
+              topologyKey: "kubernetes.io/hostname"
+          - weight: 1
+            podAffinityTerm:
+              labelSelector:
+                matchExpressions:
+                - key: app
+                  operator: In
+                  values:
+                  - {{ $name }}
+                - key: role
+                  operator: In
+                  values:
+                  - jobmanager
+              topologyKey: "kubernetes.io/hostname"
   volumeClaimTemplates:
     - metadata:
         name: flink
