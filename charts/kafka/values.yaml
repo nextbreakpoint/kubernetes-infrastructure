@@ -27,13 +27,19 @@ environment:
 secrets:
   password:
 
-nodes:
-  - "1"
-  - "2"
-  - "3"
-
 zookeeper:
   connect: "zookeeper-1:2181,zookeeper-2:2181,zookeeper-3:2181"
 
 storage:
   create: false
+
+nodes:
+  - id: "1"
+    zone: "a"
+    externalName:
+  - id: "2"
+    zone: "b"
+    externalName:
+  - id: "3"
+    zone: "c"
+    externalName: 

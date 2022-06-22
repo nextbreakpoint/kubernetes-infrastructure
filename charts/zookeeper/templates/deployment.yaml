@@ -7,7 +7,7 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: {{ $fullname }}-{{ . }}
+  name: {{ $fullname }}-{{ .id }}
   labels:
     app: {{ $name }}
     chart: {{ $chart }}
@@ -15,26 +15,28 @@ metadata:
     heritage: {{ $root.Release.Service }}
 spec:
   replicas: 1
+  strategy:
+    type: Recreate
   selector:
     matchLabels:
       app: {{ $name }}
       release: {{ $root.Release.Name }}
-      server: {{ $fullname }}-{{ . }}
+      server: {{ $fullname }}-{{ .id }}
   template:
     metadata:
       labels:
         app: {{ $name }}
         release: {{ $root.Release.Name }}
-        server: {{ $fullname }}-{{ . }}
+        server: {{ $fullname }}-{{ .id }}
     spec:
+      {{- if $root.Values.image.pullSecrets }}
+      imagePullSecrets:
+        - name: {{ $root.Values.image.pullSecrets }}
+      {{- end}}
       containers:
         - name: {{ $root.Chart.Name }}
           image: "{{ $root.Values.image.registry }}{{ $root.Values.image.repository }}:{{ $root.Values.image.tag }}"
           imagePullPolicy: {{ $root.Values.image.pullPolicy }}
-          {{- if $root.Values.image.pullSecrets }}
-          imagePullSecrets:
-            - name: {{ toYaml $root.Values.image.pullSecrets | indent 8 | trim }}
-          {{- end}}
           ports:
             - name: client
               containerPort: 2181
@@ -71,13 +73,9 @@ spec:
             {{- end}}
           env:
             - name: ZOO_MY_ID
-              value: "{{ . }}"
+              value: "{{ .id }}"
             - name: ZOO_SERVERS
-              value: "server.1={{ if eq . "1" }}{{ "0.0.0.0" }}{{ else }}{{ $fullname }}-1{{ end }}:2888:3888 server.2={{ if eq . "2" }}{{ "0.0.0.0" }}{{ else }}{{ $fullname }}-2{{ end }}:2888:3888 server.3={{ if eq . "3" }}{{ "0.0.0.0" }}{{ else }}{{ $fullname }}-3{{ end }}:2888:3888"
-            - name: ZOO_ENABLE_QUORUM_SASL
-              value: "true"
-            - name: ZOO_ENABLE_CLIENT_SASL
-              value: "true"
+              value: "server.1={{ if eq .id "1" }}{{ "0.0.0.0" }}{{ else }}{{ $fullname }}-1{{ end }}:2888:3888 server.2={{ if eq .id "2" }}{{ "0.0.0.0" }}{{ else }}{{ $fullname }}-2{{ end }}:2888:3888 server.3={{ if eq .id "3" }}{{ "0.0.0.0" }}{{ else }}{{ $fullname }}-3{{ end }}:2888:3888"
             - name: ZOO_DATA_LOG_DIR
               value: "/var/datalog"
             - name: ZOO_DATA_DIR
@@ -85,6 +83,10 @@ spec:
             - name: JVMFLAGS
               value: "{{ $root.Values.environment.jvmFlags }}"
             {{- if $root.Values.secrets.password }}
+            - name: ZOO_ENABLE_QUORUM_SASL
+              value: "false"
+            - name: ZOO_ENABLE_CLIENT_SASL
+              value: "false"
             - name: JAAS_CONFIG_LOCATION
               value: "/etc/zookeeper_jaas.conf"
             {{- end}}
@@ -93,35 +95,28 @@ spec:
       volumes:
         - name: zookeeper-data
           persistentVolumeClaim:
-            claimName: {{ $fullname }}-{{ . }}
+            claimName: {{ $fullname }}-{{ .id }}
         {{- if $root.Values.secrets.password }}
         - name: zookeeper-jaas-config
           secret:
             secretName: {{ $fullname }}-jaas-config
         {{- end}}
       affinity:
-{{- if $root.Values.nodeAffinity }}
-{{ toYaml $root.Values.nodeAffinity | indent 12 }}
-{{- else}}
-{{- if $root.Values.zone }}
         nodeAffinity:
           requiredDuringSchedulingIgnoredDuringExecution:
             nodeSelectorTerms:
+            {{- if .zone }}
             - matchExpressions:
               - key: topology.kubernetes.io/zone
                 operator: In
                 values:
-                  - {{ $root.Values.zone }}
-{{- end}}
-{{- if $root.Values.hostname }}
-        nodeAffinity:
-          requiredDuringSchedulingIgnoredDuringExecution:
-            nodeSelectorTerms:
+                  - {{ .zone }}
+            {{- end}}
+            {{- if .hostname }}
             - matchExpressions:
               - key: kubernetes.io/hostname
                 operator: In
                 values:
-                  - {{ $root.Values.hostname }}
-{{- end}}
-{{- end}}
+                  - {{ .hostname }}
+            {{- end}}
 {{ end }}

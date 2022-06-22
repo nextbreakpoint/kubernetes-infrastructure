@@ -13,13 +13,25 @@ jobmanager:
   resources:
     limits:
      cpu: 100m
-     memory: 300Mi
+     memory: 320Mi
     requests:
      cpu: 100m
-     memory: 300Mi
+     memory: 320Mi
   environment:
-    - name: FLINK_JM_HEAP
-      value: "256"
+    - name: FLINK_PROPERTIES
+      value: |
+        heartbeat.timeout: 90000
+        heartbeat.interval: 15000
+        jobmanager.heap.size: 256m
+        # state.backend.fs.checkpointdir: s3a://flink/backend/checkpoints
+        # state.checkpoints.dir: s3a://flink/checkpoints
+        # state.savepoints.dir: s3a://flink/savepoints
+        # fs.hdfs.hdfssite: /core-site.xml
+        metrics.reporters: prometheus
+        metrics.reporter.prometheus.class: org.apache.flink.metrics.prometheus.PrometheusReporter
+        metrics.reporter.prometheus.port: 9090
+  storage:
+    size: 2Gi
 
 taskmanager:
   replicas: 2
@@ -27,18 +39,35 @@ taskmanager:
   resources:
     limits:
      cpu: 100m
-     memory: 1100Mi
+     memory: 1200Mi
     requests:
      cpu: 100m
-     memory: 1100Mi
+     memory: 1200Mi
   environment:
-    - name: FLINK_TM_HEAP
-      value: "1024"
+    - name: FLINK_PROPERTIES
+      value: |
+        heartbeat.timeout: 90000
+        heartbeat.interval: 15000
+        taskmanager.memory.process.size: 1024m
+        taskmanager.memory.network.fraction: 0.1
+        taskmanager.memory.managed.fraction: 0.1
+        # state.backend.fs.checkpointdir: s3a://flink/backend/checkpoints
+        # state.checkpoints.dir: s3a://flink/checkpoints
+        # state.savepoints.dir: s3a://flink/savepoints
+        # fs.hdfs.hdfssite: /core-site.xml
+        metrics.reporters: prometheus
+        metrics.reporter.prometheus.class: org.apache.flink.metrics.prometheus.PrometheusReporter
+        metrics.reporter.prometheus.port: 9090
+  storage:
+    size: 5Gi
 
 storage:
   create: false
 
 nodes:
-  - "1"
-  - "2"
-  - "3"
+  - id: "1"
+    zone: "a"
+  - id: "2"
+    zone: "b"
+  - id: "3"
+    zone: "c"

@@ -24,6 +24,9 @@ spec:
     - port: 2888
       protocol: TCP
       name: peer
+    - port: 9090
+      protocol: TCP
+      name: metrics
   selector:
     app: {{ $name }}
     release: {{ $root.Release.Name }}
@@ -32,14 +35,14 @@ spec:
 apiVersion: v1
 kind: Service
 metadata:
-  name: {{ $fullname }}-{{ . }}
+  name: {{ $fullname }}-{{ .id }}
   labels:
     app: {{ $name }}
     chart: {{ $chart }}
     release: {{ $root.Release.Name }}
     heritage: {{ $root.Release.Service }}
     external: "false"
-    server: {{ $fullname }}-{{ . }}
+    server: {{ $fullname }}-{{ .id }}
 spec:
   type: ClusterIP
   ports:
@@ -62,44 +65,44 @@ spec:
   selector:
     app: {{ $name }}
     release: {{ $root.Release.Name }}
-    server: {{ $fullname }}-{{ . }}
+    server: {{ $fullname }}-{{ .id }}
 ---
 apiVersion: v1
 kind: Service
 metadata:
-  name: {{ $fullname }}-{{ . }}-external
+  name: {{ $fullname }}-{{ .id }}-external
   labels:
     app: {{ $name }}
     chart: {{ $chart }}
     release: {{ $root.Release.Name }}
     heritage: {{ $root.Release.Service }}
     external: "true"
-    server: {{ $fullname }}-{{ . }}
+    server: {{ $fullname }}-{{ .id }}
 spec:
   type: NodePort
   ports:
     - port: 2181
-      nodePort: {{ add $root.Values.service.firstExternalClientPort . }}
+      nodePort: {{ add $root.Values.service.firstExternalClientPort .id }}
       targetPort: client
       protocol: TCP
       name: client
     - port: 3888
-      nodePort: {{ add $root.Values.service.firstExternalLeaderPort . }}
+      nodePort: {{ add $root.Values.service.firstExternalLeaderPort .id }}
       targetPort: leader
       protocol: TCP
       name: leader
     - port: 2888
-      nodePort: {{ add $root.Values.service.firstExternalPeerPort . }}
+      nodePort: {{ add $root.Values.service.firstExternalPeerPort .id }}
       targetPort: peer
       protocol: TCP
       name: peer
     - port: 9090
-      nodePort: {{ add $root.Values.service.firstExternalMetricsPort . }}
+      nodePort: {{ add $root.Values.service.firstExternalMetricsPort .id }}
       targetPort: metrics
       protocol: TCP
       name: metrics
   selector:
     app: {{ $name }}
     release: {{ $root.Release.Name }}
-    server: {{ $fullname }}-{{ . }}
+    server: {{ $fullname }}-{{ .id }}
 {{ end }}

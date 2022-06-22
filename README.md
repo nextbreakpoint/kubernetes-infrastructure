@@ -43,19 +43,35 @@ Run Flink Taskmanager as container:
     docker run -it --rm --net test --name flink-taskmanager -e JOB_MANAGER_RPC_ADDRESS=flink-jobmanager nextbreakpoint/flink:1.15.0 taskmanager
 
 
+## Push images
+
+Push images to a registry accessible from Kubernetes:
+
+    docker login ${REGISTRY}
+
+    docker tag nextbreakpoint/zookeeper:3.8.0 ${REGISTRY}/nextbreakpoint/zookeeper:3.8.0
+    docker push ${REGISTRY}/nextbreakpoint/zookeeper:3.8.0
+
+    docker tag nextbreakpoint/cp-kafka:6.0.7 ${REGISTRY}/nextbreakpoint/cp-kafka:6.0.7
+    docker push ${REGISTRY}/nextbreakpoint/cp-kafka:6.0.7
+
+    docker tag nextbreakpoint/flink:1.15.0 ${REGISTRY}/nextbreakpoint/flink:1.15.0
+    docker push ${REGISTRY}/nextbreakpoint/flink:1.15.0
+
+
 ## Install applications
 
 Install Zookeeper:
 
-    helm install zookeeper charts/zookeeper
+    helm upgrade --install zookeeper charts/zookeeper --set storage.create=true,image.pullSecrets=regcred,image.registry=${REGISTRY}/     
 
 Install Kafka:
 
-    helm install kafka charts/kafka
+    helm upgrade --install kafka charts/kafka --set storage.create=true,image.pullSecrets=regcred,image.registry=${REGISTRY}/ --values values.yaml
 
 Install Flink:
 
-    helm install flink charts/flink
+    helm upgrade --install flink charts/flink --set storage.create=true,image.pullSecrets=regcred,image.registry=${REGISTRY}/
 
 
 ## Uninstall applications

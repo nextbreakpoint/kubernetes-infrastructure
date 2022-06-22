@@ -2,48 +2,40 @@
 {{- $name := include "kafka.name" . -}}
 {{- $root := . }}
 {{ range .Values.nodes }}
-{{- if eq $root.Values.storage.create "true" }}
+{{- if $root.Values.storage.create }}
 ---
 apiVersion: v1
 kind: PersistentVolume
 metadata:
-  name: {{ $fullname }}-{{ . }}
+  name: {{ $fullname }}-{{ .id }}
   labels:
     app: {{ $name }}
     release: {{ $root.Release.Name }}
-    server: {{ $fullname }}-{{ . }}
+    server: {{ $fullname }}-{{ .id }}
 spec:
   capacity:
     storage: {{ $root.Values.storage.size | default "5Gi" }}
   accessModes:
-  - ReadWriteOnce
+    - {{ $root.Values.storage.accessModes | default "ReadWriteOnce" }}
   persistentVolumeReclaimPolicy: {{ $root.Values.storage.reclaimPolicy | default "Retain" }}
-  storageClassName: {{ $root.Values.storage.class | default "hostpath" }}
+  storageClassName: "hostpath"
   local:
-    path: {{ $root.Values.storage.hostpath | default "/var/tmp" }}
-{{- if $root.Values.nodeAffinity }}
-{{ toYaml $root.Values.nodeAffinity | indent 4 }}
-{{- else}}
-{{- if $root.Values.nodeAffinity.zone }}
+    path: "{{ $root.Values.storage.path | default "/var" }}/{{ $fullname }}-{{ .id }}"
   nodeAffinity:
-    requiredDuringSchedulingIgnoredDuringExecution:
+    required:
       nodeSelectorTerms:
-      - matchExpressions:
-        - key: topology.kubernetes.io/zone
-          operator: In
-          values:
-            - {{ $root.Values.nodeAffinity.zone }}
-{{- end}}
-{{- if $root.Values.nodeAffinity.zone }}
-  nodeAffinity:
-    requiredDuringSchedulingIgnoredDuringExecution:
-      nodeSelectorTerms:
-      - matchExpressions:
-        - key: kubernetes.io/hostname
-          operator: In
-          values:
-            - {{ $root.Values.nodeAffinity.hostname }}
-{{- end}}
-{{- end}}
+        - matchExpressions:
+          {{- if .zone }}
+          - key: topology.kubernetes.io/zone
+            operator: In
+            values:
+              - {{ .zone }}
+          {{- end}}
+          {{- if .hostname }}
+          - key: kubernetes.io/hostname
+            operator: In
+            values:
+              - {{ .hostname }}
+          {{- end}}
 {{- end}}
 {{ end }}

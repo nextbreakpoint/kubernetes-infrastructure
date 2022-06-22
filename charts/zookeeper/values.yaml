@@ -29,10 +29,13 @@ environment:
 secrets:
   password:
 
-nodes:
-  - "1"
-  - "2"
-  - "3"
-
 storage:
   create: false
+
+nodes:
+  - id: "1"
+    zone: "a"
+  - id: "2"
+    zone: "b"
+  - id: "3"
+    zone: "c"

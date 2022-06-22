@@ -6,11 +6,11 @@
 kind: PersistentVolumeClaim
 apiVersion: v1
 metadata:
-  name: {{ $fullname }}-{{ . }}
+  name: {{ $fullname }}-{{ .id }}
 spec:
   storageClassName: {{ $root.Values.storage.class | default "hostpath" }}
   accessModes:
-    - ReadWriteOnce
+    - {{ $root.Values.storage.accessModes | default "ReadWriteOnce" }}
   resources:
     requests:
       storage: {{ $root.Values.storage.size | default "5Gi" }}
@@ -18,5 +18,5 @@ spec:
       matchLabels:
         app: {{ $name }}
         release: {{ $root.Release.Name }}
-        server: {{ $fullname }}-{{ . }}
+        server: {{ $fullname }}-{{ .id }}
 {{ end }}

@@ -1,0 +1,10 @@
+nodes:
+  - id: "1"
+    zone: "a"
+    externalName: 192.168.56.11
+  - id: "2"
+    zone: "b"
+    externalName: 192.168.56.12
+  - id: "3"
+    zone: "c"
+    externalName: 192.168.56.13
