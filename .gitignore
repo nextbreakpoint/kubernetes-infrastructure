@@ -6,3 +6,4 @@ charts/jaeger-operator/charts
 charts/kube-prometheus-stack/charts
 charts/vault/charts
 charts/postgresql/charts
+requirements.lock
