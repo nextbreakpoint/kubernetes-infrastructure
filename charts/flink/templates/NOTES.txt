@@ -11,12 +11,12 @@ Select Flink jobmanager by running these commands:
 
 List jobs running on Flink by running this command:
 
-  kubectl -n {{ $root.Release.Namespace | default "default" }} run flink-cli --rm -it --restart=Never --image={{ $root.Values.image.registry }}{{ $root.Values.image.repository }}:{{ $root.Values.image.tag }} -- flink list -m {{ $name }}-jobmanager-headless:8081
+  kubectl -n {{ $root.Release.Namespace | default "default" }} run flink-cli --rm -it --restart=Never --image={{ $root.Values.image.name }}:{{ $root.Values.image.tag }} -- flink list -m {{ $name }}-jobmanager-headless:8081
 
 Submit a job to Flink by running these commands:
 
   cat <<EOF >Dockerfile
-  FROM {{ $root.Values.image.registry }}{{ $root.Values.image.repository }}:{{ $root.Values.image.tag }}
+  FROM {{ $root.Values.image.name }}:{{ $root.Values.image.tag }}
   COPY some-flink-job.jar /some-flink-job.jar
   EOF
 

@@ -34,7 +34,7 @@ spec:
       {{- end}}
       containers:
         - name: {{ $root.Chart.Name }}
-          image: "{{ $root.Values.image.registry }}{{ $root.Values.image.repository }}:{{ $root.Values.image.tag }}"
+          image: "{{ $root.Values.image.name }}:{{ $root.Values.image.tag }}"
           imagePullPolicy: {{ $root.Values.image.pullPolicy }}
           args:
             - jobmanager
@@ -65,7 +65,7 @@ spec:
                 fieldRef:
                   fieldPath: metadata.namespace
             - name: JOB_MANAGER_RPC_ADDRESS
-              value: {{ $fullname }}-jobmanager
+              value: {{ $fullname }}-jobmanager-headless
 {{ toYaml $root.Values.jobmanager.environment | indent 12 }}
           resources:
 {{ toYaml $root.Values.jobmanager.resources | indent 12 }}
@@ -85,23 +85,6 @@ spec:
                   values:
                   - jobmanager
               topologyKey: "kubernetes.io/hostname"
-        nodeAffinity:
-          requiredDuringSchedulingIgnoredDuringExecution:
-            nodeSelectorTerms:
-            {{- if $root.Values.jobmanager.zone }}
-            - matchExpressions:
-              - key: topology.kubernetes.io/zone
-                operator: In
-                values:
-                  - {{ $root.Values.jobmanager.zone }}
-            {{- end}}
-            {{- if $root.Values.jobmanager.hostname }}
-            - matchExpressions:
-              - key: kubernetes.io/hostname
-                operator: In
-                values:
-                  - {{ $root.Values.jobmanager.hostname }}
-            {{- end}}
   volumeClaimTemplates:
     - metadata:
         name: flink
@@ -114,8 +97,8 @@ spec:
           - {{ $root.Values.jobmanager.storage.accessModes | default "ReadWriteOnce" }}
         resources:
           requests:
-            storage: {{ $root.Values.jobmanager.storage.size | default "2Gi" }}
-        storageClassName: {{ $root.Values.jobmanager.storage.class | default "hostpath" }}
+            storage: {{ $root.Values.jobmanager.storage.size | default "4Gi" }}
+        storageClassName: {{ $root.Values.jobmanager.storage.storageClass | default "hostpath" }}
 ---
 apiVersion: apps/v1
 kind: StatefulSet
@@ -149,7 +132,7 @@ spec:
       {{- end}}
       containers:
         - name: {{ $root.Chart.Name }}
-          image: "{{ $root.Values.image.registry }}{{ $root.Values.image.repository }}:{{ $root.Values.image.tag }}"
+          image: "{{ $root.Values.image.name }}:{{ $root.Values.image.tag }}"
           imagePullPolicy: {{ $root.Values.image.pullPolicy }}
           args:
             - taskmanager
@@ -176,7 +159,7 @@ spec:
             - name: TASK_MANAGER_NUMBER_OF_TASK_SLOTS
               value: {{ $root.Values.taskmanager.taskslots | default "1" | quote }}
             - name: JOB_MANAGER_RPC_ADDRESS
-              value: {{ $fullname }}-jobmanager
+              value: {{ $fullname }}-jobmanager-headless
 {{ toYaml $root.Values.taskmanager.environment | indent 12 }}
           resources:
 {{ toYaml $root.Values.taskmanager.resources | indent 12 }}
@@ -221,5 +204,5 @@ spec:
           - {{ $root.Values.taskmanager.storage.accessModes | default "ReadWriteOnce" }}
         resources:
           requests:
-            storage: {{ $root.Values.taskmanager.storage.size | default "5Gi" }}
-        storageClassName: {{ $root.Values.taskmanager.storage.class | default "hostpath" }}
+            storage: {{ $root.Values.taskmanager.storage.size | default "8Gi" }}
+        storageClassName: {{ $root.Values.taskmanager.storage.storageClass | default "hostpath" }}

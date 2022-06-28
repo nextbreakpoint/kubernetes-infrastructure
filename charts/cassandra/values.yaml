@@ -1,0 +1,27 @@
+global:
+  storageClass: hostpath-csi
+
+cassandra:
+  image:
+    pullPolicy: IfNotPresent
+  replicaCount: 1
+  jvm:
+    maxHeapSize: 3G
+    newHeapSize: 100M
+  resources:
+    limits:
+     cpu: 500m
+     memory: 3800Mi
+    requests:
+     cpu: 500m
+     memory: 3800Mi
+  # updateStrategy:
+  #   type: OnDelete
+  podAntiAffinityPreset: hard
+  metrics:
+    enabled: true
+  cluster:
+    endpointSnitch: GossipingPropertyFileSnitch
+    numTokens: 16
+  dbUser:
+    password: password

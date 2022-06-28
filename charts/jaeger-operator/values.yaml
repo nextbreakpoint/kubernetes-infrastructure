@@ -1,0 +1,41 @@
+jaeger-operator:
+  rbac:
+    create: true
+    clusterRole: true
+  jaeger:
+    create: true
+    namespace: observability
+    spec:
+      strategy: production
+      collector:
+        maxReplicas: 3
+        resources:
+          limits:
+            cpu: 500m
+            memory: 128Mi
+          requests:
+            cpu: 100m
+            memory: 128Mi
+    #  collector:
+    #    options:
+    #      kafka:
+    #        producer:
+    #          topic: jaeger-spans
+    #          brokers: kafka.platform:9092
+    #  ingester:
+    #    options:
+    #      kafka:
+    #        consumer:
+    #          topic: jaeger-spans
+    #          brokers: kafka.platform:9092
+    #      ingester:
+    #        deadlockInterval: 5s
+      storage:
+        type: elasticsearch
+        options:
+          es:
+            server-urls: http://elasticsearch.elasticsearch.svc.cluster.local:9200
+        esIndexCleaner:
+          enabled: true
+          numberOfDays: 1
+          schedule: "55 23 * * *"

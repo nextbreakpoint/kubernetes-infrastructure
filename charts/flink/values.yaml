@@ -3,16 +3,15 @@
 # Declare variables to be passed into your templates.
 
 image:
-  registry:
-  repository: nextbreakpoint/flink
-  tag: 1.15.0
+  name: flink
+  tag: 1.15.0-scala_2.12-java11
   pullPolicy: Always
   pullSecrets:
 
 jobmanager:
   resources:
     limits:
-     cpu: 100m
+     cpu: 500m
      memory: 320Mi
     requests:
      cpu: 100m
@@ -30,16 +29,19 @@ jobmanager:
         metrics.reporters: prometheus
         metrics.reporter.prometheus.class: org.apache.flink.metrics.prometheus.PrometheusReporter
         metrics.reporter.prometheus.port: 9090
+        # high-availability: kubernetes
+        # kubernetes.cluster-id: cluster1
+        # high-availability.storageDir: s3://flink/recovery
   storage:
-    size: 2Gi
-  zone: b
+    size: 4Gi
+    storageClass: hostpath-csi
 
 taskmanager:
   replicas: 2
   taskslots: 1
   resources:
     limits:
-     cpu: 100m
+     cpu: 500m
      memory: 1200Mi
     requests:
      cpu: 100m
@@ -60,15 +62,5 @@ taskmanager:
         metrics.reporter.prometheus.class: org.apache.flink.metrics.prometheus.PrometheusReporter
         metrics.reporter.prometheus.port: 9090
   storage:
-    size: 5Gi
-
-storage:
-  create: false
-
-nodes:
-  - id: "1"
-    zone: "a"
-  - id: "2"
-    zone: "b"
-  - id: "3"
-    zone: "c"
+    size: 8Gi
+    storageClass: hostpath-csi

@@ -1,0 +1,33 @@
+global:
+  storageClass: hostpath-csi
+
+postgresql:
+  image:
+    pullPolicy: IfNotPresent
+  architecture: standalone
+  # architecture: replication
+  primary:
+    resources:
+      limits:
+       cpu: 500m
+       memory: 500Mi
+      requests:
+       cpu: 100m
+       memory: 500Mi
+  secondary:
+    resources:
+      limits:
+       cpu: 500m
+       memory: 500Mi
+      requests:
+       cpu: 100m
+       memory: 500Mi
+  podAntiAffinityPreset: hard
+  metrics:
+    enabled: true
+  auth:
+    postgresPassword: test
+    replicationPassword: test
+    database: test
+    username: test
+    password: test

@@ -1,45 +1,41 @@
-# Default values for kafka.
-# This is a YAML-formatted file.
-# Declare variables to be passed into your templates.
+global:
+  storageClass: hostpath-csi
 
-image:
-  registry:
-  repository: nextbreakpoint/cp-kafka
-  tag: 6.0.7
-  pullPolicy: Always
-  pullSecrets:
-
-service:
-  firstExternalBrokerPort: 32000
-  firstExternalMetricsPort: 32090
-
-resources:
-  limits:
-   cpu: 100m
-   memory: 1100Mi
-  requests:
-   cpu: 100m
-   memory: 1100Mi
-
-environment:
-  jvmFlags: "-Xms1024M -Xmx1024M"
-
-secrets:
-  password:
-
-zookeeper:
-  connect: "zookeeper-1:2181,zookeeper-2:2181,zookeeper-3:2181"
-
-storage:
-  create: false
-
-nodes:
-  - id: "1"
-    zone: "a"
-    externalName:
-  - id: "2"
-    zone: "b"
-    externalName:
-  - id: "3"
-    zone: "c"
-    externalName: 
+kafka:
+  image:
+    pullPolicy: IfNotPresent
+  replicaCount: 3
+  heapOpts: "-Xmx1024m -Xms1024m"
+  resources:
+    limits:
+     cpu: 500m
+     memory: 1200Mi
+    requests:
+     cpu: 100m
+     memory: 1200Mi
+  # updateStrategy:
+  #   type: OnDelete
+  podAntiAffinityPreset: hard
+  metrics:
+    kafka:
+      enabled: true
+    jmx:
+      enabled: true
+  zookeeper:
+    enabled: true
+    image:
+      pullPolicy: IfNotPresent
+    replicaCount: 3
+    heapSize: 512
+    resources:
+      limits:
+       cpu: 500m
+       memory: 700Mi
+      requests:
+       cpu: 100m
+       memory: 700Mi
+    # updateStrategy:
+    #   type: OnDelete
+    podAntiAffinityPreset: hard
+    metrics:
+      enabled: true

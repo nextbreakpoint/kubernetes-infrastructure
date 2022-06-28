@@ -1,0 +1,10 @@
+consul:
+  server:
+    storageClass: hostpath-csi
+    resources:
+      requests:
+        memory: "100Mi"
+        cpu: "100m"
+      limits:
+        memory: "100Mi"
+        cpu: "100m"

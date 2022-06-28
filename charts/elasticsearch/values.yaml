@@ -1,0 +1,50 @@
+global:
+  kibanaEnabled: true
+  storageClass: hostpath-csi
+
+elasticsearch:
+  image:
+    pullPolicy: IfNotPresent
+    tag: 7.17.1-debian-10-r0
+  master:
+    replicaCount: 3
+    heapSize: 2g
+    resources:
+      limits:
+       cpu: 500m
+       memory: 2500Mi
+      requests:
+       cpu: 100m
+       memory: 2500Mi
+    autoscaling:
+      minReplicas: 3
+      maxReplicas: 3
+    podAntiAffinityPreset: hard
+  data:
+    replicaCount: 3
+    heapSize: 2g
+    resources:
+      limits:
+       cpu: 500m
+       memory: 2500Mi
+      requests:
+       cpu: 100m
+       memory: 2500Mi
+    autoscaling:
+      minReplicas: 3
+      maxReplicas: 3
+    podAntiAffinityPreset: hard
+  ingest:
+    replicaCount: 0
+  coordinating:
+    replicaCount: 0
+  curator:
+    enabled: false
+  metrics:
+    enabled: true
+  kibana:
+    image:
+      pullPolicy: IfNotPresent
+      tag: 7.17.1-debian-10-r0
+    persistence:
+      size: 5Gi
