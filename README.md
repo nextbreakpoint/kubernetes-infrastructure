@@ -1,8 +1,6 @@
 # kubernetes-infrastructure
 
-This repository contains the Helm charts for installing Kafka, Zookeeper, and Flink.
-
-The charts depend on custom Docker images which must be created before installing the charts.
+This repository contains the Helm charts for deploying some infrastructure on Kubernetes.
 
 
 ## Install infrastructure
